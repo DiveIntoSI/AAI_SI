@@ -139,6 +139,7 @@ class Preprocess():
             yield b''.join([f.bytes for f in voiced_frames])
 
     def create_pickle(self, path, wav_arr, sample_rate):
+        # 目前仅提取了 logmel_feats 特征
         if round((wav_arr.shape[0] / sample_rate), 1) >= self.hparams.segment_length:
             save_dict = {}
             logmel_feats = logfbank(
@@ -161,14 +162,14 @@ class Preprocess():
             with open(os.path.join(self.hparams.pk_dir.rstrip("/"), pickle_f_name), "wb") as f:
                 pickle.dump(save_dict, f, protocol=3)
         else:
-            print("wav length smaller than 1.6s: " + path)
+            print("wav length smaller than 1.6s: " + path) # 按照目前的超参数设置(3秒)，这段代码没用，不会有小于3秒的
 
 
 def main():
     # Hyperparameters
     parser = argparse.ArgumentParser()
 
-    # in_dir = ~/wav
+    # in_dir
     parser.add_argument("--in_dir", type=str, default='data/train',
                         help="input audio data dir")
     parser.add_argument("--pk_dir", type=str, default='data_pk/train',
@@ -187,5 +188,5 @@ def main():
     preprocess.preprocess_data()
 
 if __name__ == "__main__":
-    main()
     print('ok')
+    main()
