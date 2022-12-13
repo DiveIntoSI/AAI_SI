@@ -8,12 +8,15 @@ import numpy as np
 import soundfile as sf
 from python_speech_features import logfbank
 
+
 class Frame(object):
     """Represents a "frame" of audio data."""
+
     def __init__(self, bytes, timestamp, duration):
         self.bytes = bytes
         self.timestamp = timestamp
         self.duration = duration
+
 
 class Preprocess():
     def __init__(self, hparams):
@@ -35,17 +38,22 @@ class Preprocess():
             else:
                 wav_arr = wav_arr[(n_sample - singal_len) //
                                   2:(n_sample + singal_len) // 2]
-            self.create_pickle(path, wav_arr, sample_rate)
+            # self.create_pickle(path, wav_arr, sample_rate)
+
     def vad_process(self, path):
         # VAD Process
-        audio, sample_rate = sf.read(path)
-        vad = webrtcvad.Vad(1)
+        audio_, sample_rate = sf.read(path, dtype='int16')
+        audio = audio_.tobytes()  # 16bits=2bytes   audio_duration=len(audio)/2/sample_rate
+        vad = webrtcvad.Vad(1)  # 识别空段的强度，0最弱，3最强。
         frames = self.frame_generator(30, audio, sample_rate)
-        frames = list(frames)
+        frames = list(frames)  # 输入9s音频的话， 将生成 9s/30ms=300帧。
         segments = self.vad_collector(sample_rate, 30, 300, vad, frames)
         total_wav = b""
+        n_segments = 0
         for i, segment in enumerate(segments):
             total_wav += segment
+            n_segments += 1
+        print(f'seg num:{n_segments:2d} {len(total_wav) / len(audio):.3f} {len(audio)/2/sample_rate:.1f}s {path}')
         # Without writing, unpack total_wav into numpy [N,1] array
         # 16bit PCM 기준 dtype=np.int16
         wav_arr = np.frombuffer(total_wav, dtype=np.int16)
@@ -58,7 +66,7 @@ class Preprocess():
         the sample rate.
         Yields Frames of the requested duration.
         """
-        n = int(sample_rate * (frame_duration_ms / 1000.0) * 2)
+        n = int(sample_rate * (frame_duration_ms / 1000.0) * 2)  # 每次采样16位(2bytes)
         offset = 0
         timestamp = 0.0
         duration = (float(n) / sample_rate) / 2.0
@@ -103,10 +111,10 @@ class Preprocess():
             if not triggered:
                 ring_buffer.append((frame, is_speech))
                 num_voiced = len([f for f, speech in ring_buffer if speech])
-                # If we're NOTTRIGGERED and more than 90% of the frames in
+                # If we're NOTTRIGGERED and more than 60% of the frames in
                 # the ring buffer are voiced frames, then enter the
                 # TRIGGERED state.
-                if num_voiced > 0.9 * ring_buffer.maxlen:
+                if num_voiced >= 0.6 * ring_buffer.maxlen:
                     triggered = True
                     # sys.stdout.write('+(%s)' % (ring_buffer[0][0].timestamp,))
                     # We want to yield all the audio we see from now until
@@ -124,7 +132,7 @@ class Preprocess():
                 # If more than 90% of the frames in the ring buffer are
                 # unvoiced, then enter NOTTRIGGERED and yield whatever
                 # audio we've collected.
-                if num_unvoiced > 0.9 * ring_buffer.maxlen:
+                if num_unvoiced >= 0.6 * ring_buffer.maxlen:
                     # sys.stdout.write('-(%s)' % (frame.timestamp + frame.duration))
                     triggered = False
                     yield b''.join([f.bytes for f in voiced_frames])
@@ -162,7 +170,7 @@ class Preprocess():
             with open(os.path.join(self.hparams.pk_dir.rstrip("/"), pickle_f_name), "wb") as f:
                 pickle.dump(save_dict, f, protocol=3)
         else:
-            print("wav length smaller than 1.6s: " + path) # 按照目前的超参数设置(3秒)，这段代码没用，不会有小于3秒的
+            print("wav length smaller than 1.6s: " + path)  # 按照目前的超参数设置(3秒)，这段代码没用，不会有小于3秒的
 
 
 def main():
@@ -186,6 +194,7 @@ def main():
 
     preprocess = Preprocess(args)
     preprocess.preprocess_data()
+
 
 if __name__ == "__main__":
     print('ok')
