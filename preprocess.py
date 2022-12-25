@@ -5,8 +5,12 @@ import argparse
 import webrtcvad
 import collections
 import numpy as np
+import pandas as pd
 import soundfile as sf
 from python_speech_features import logfbank
+from sklearn.model_selection import StratifiedShuffleSplit
+
+
 
 
 class Frame(object):
@@ -30,6 +34,7 @@ class Preprocess():
             path_list = [x for x in glob.iglob(os.path.join(self.hparams.in_dir.rstrip("/") + "/*.flac"))]
         for path in path_list:
             wav_arr, sample_rate = self.vad_process(path)
+            # 在这里加一个保存文件  待写
             # padding
             singal_len = int(self.hparams.segment_length * sample_rate)
             n_sample = wav_arr.shape[0]
@@ -53,7 +58,7 @@ class Preprocess():
         for i, segment in enumerate(segments):
             total_wav += segment
             n_segments += 1
-        print(f'seg num:{n_segments:2d} {len(total_wav) / len(audio):.3f} {len(audio)/2/sample_rate:.1f}s {path}')
+        # print(f'seg num:{n_segments:2d} {len(total_wav) / len(audio):.3f} {len(audio)/2/sample_rate:.1f}s {path}')
         # Without writing, unpack total_wav into numpy [N,1] array
         # 16bit PCM 기준 dtype=np.int16
         wav_arr = np.frombuffer(total_wav, dtype=np.int16)
@@ -171,6 +176,28 @@ class Preprocess():
                 pickle.dump(save_dict, f, protocol=3)
         else:
             print("wav length smaller than 1.6s: " + path)  # 按照目前的超参数设置(3秒)，这段代码没用，不会有小于3秒的
+
+
+def save_train_val_txt(train_folder, data_folder):
+    # 对train_folder数据集进行分层划分,txt存入data_folder下
+    #  train_floder: 'data/train'
+    data = []
+    for speaker in os.listdir(train_folder):
+        label = int(speaker[-3:])
+        for speaker_one in os.listdir(os.path.join(train_folder, speaker)):
+            FileID = os.path.join(train_folder, speaker, speaker_one)
+            data.append([FileID, label])
+
+    df = pd.DataFrame(data, columns=['FileID', 'Label'])
+
+    # 对train按照比例划分出训练集和验证集
+    split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=111)
+
+    train_index, test_index = list(split.split(df, df["Label"]))[0]
+
+    df.loc[train_index.tolist()].to_csv(os.path.join(data_folder, "train_info.txt"), index=False)
+    df.loc[test_index.tolist()].to_csv(os.path.join(data_folder, "val_info.txt"), index=False)
+
 
 
 def main():
