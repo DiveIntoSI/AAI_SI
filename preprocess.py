@@ -7,6 +7,7 @@ import collections
 import numpy as np
 import pandas as pd
 import soundfile as sf
+from tqdm import tqdm
 from python_speech_features import logfbank
 import matplotlib.pyplot as plt
 from sklearn.model_selection import StratifiedShuffleSplit
@@ -36,7 +37,7 @@ class Preprocess():
             path_list = [x for x in glob.iglob(os.path.join(self.hparams.in_dir.rstrip("/") + "/*/*.flac"))]
         elif self.hparams.mode == 'test':
             path_list = [x for x in glob.iglob(os.path.join(self.hparams.in_dir.rstrip("/") + "/*.flac"))]
-        for path in path_list:
+        for path in tqdm(path_list):
             wav_arr, sample_rate = self.vad_process(path)
             # padding
             singal_len = int(self.hparams.segment_length * sample_rate)
@@ -46,7 +47,7 @@ class Preprocess():
             else:
                 wav_arr = wav_arr[(n_sample - singal_len) //
                                   2:(n_sample + singal_len) // 2]
-            # self.create_pickle(path, wav_arr, sample_rate)
+            self.create_pickle(path, wav_arr, sample_rate)
         plt.clf()
         plt.hist(self.silence_clip_ratio)
         plt.xlabel('silence ratio')
@@ -192,7 +193,7 @@ class Preprocess():
 
             if not os.path.exists(self.hparams.pk_dir):
                 os.mkdir(self.hparams.pk_dir)
-            print(os.path.join(self.hparams.pk_dir.rstrip("/"), pickle_f_name))
+            # print(os.path.join(self.hparams.pk_dir.rstrip("/"), pickle_f_name))
             with open(os.path.join(self.hparams.pk_dir.rstrip("/"), pickle_f_name), "wb") as f:
                 pickle.dump(save_dict, f, protocol=3)
         else:
