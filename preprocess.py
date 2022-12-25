@@ -125,17 +125,17 @@ class Preprocess():
         plt.hist(self.silence_clip_ratio)
         plt.xlabel('silence ratio')
         plt.ylabel('sample num')
-        plt.savefig('output/silence_clip_ratio_histogram.png')
+        plt.savefig(f'output/{self.hparams.mode}_silence_clip_ratio_histogram.png')
         plt.clf()
         plt.hist(self.silence_clip_num)
         plt.xlabel('silence clip num')
         plt.ylabel('sample num')
-        plt.savefig('output/silence_clip_num_histogram.png')
+        plt.savefig(f'output/{self.hparams.mode}_silence_clip_num_histogram.png')
         plt.clf()
         plt.hist(self.audio_duration)
         plt.xlabel('audio duration/s')
         plt.ylabel('sample num')
-        plt.savefig('output/audio_duration_histogram.png')
+        plt.savefig(f'output/{self.hparams.mode}_audio_duration_histogram.png')
         plt.close()
 
     def vad_process(self, path):
@@ -248,31 +248,27 @@ class Preprocess():
 
     def create_pickle(self, path, wav_arr, sample_rate, noised=False):
         # 目前仅提取了 logmel_feats 特征
-        if round((wav_arr.shape[0] / sample_rate), 1) >= self.hparams.segment_length:
-            save_dict = {}
-            logmel_feats = logfbank(
-                wav_arr, samplerate=sample_rate, nfilt=self.hparams.spectrogram_scale)
-            # print("created logmel feats from audio data. np array of shape:"+str(logmel_feats.shape))
+        save_dict = {}
+        logmel_feats = logfbank(
+            wav_arr, samplerate=sample_rate, nfilt=self.hparams.spectrogram_scale)
+        # print("created logmel feats from audio data. np array of shape:"+str(logmel_feats.shape))
 
-            save_dict["LogMel_Features"] = logmel_feats
-            pickle_f_name = None
-            if self.hparams.mode == 'train':
-                pickle_f_name = path.split("/")[-1].replace("flac", "pickle")
-                if noised: pickle_f_name = pickle_f_name.replace('.pickle', '_noised.pickle')  # 对训练集保存加噪声处理结果
-                save_dict["SpkId"] = path.split("/")[-2]
-                save_dict["WavId"] = path.split("/")[-1].split(".")[-2].split("_")[-1]
-            elif self.hparams.mode == 'test':
-                pickle_f_name = path.split("/")[-1].replace("flac", "pickle")
-                save_dict["WavId"] = path.split("/")[-1].split(".")[-2][4:]
+        save_dict["LogMel_Features"] = logmel_feats
+        pickle_f_name = None
+        if self.hparams.mode == 'train':
+            pickle_f_name = path.split("/")[-1].replace("flac", "pickle")
+            if noised: pickle_f_name = pickle_f_name.replace('.pickle', '_noised.pickle')  # 对训练集保存加噪声处理结果
+            save_dict["SpkId"] = path.split("/")[-2]
+            save_dict["WavId"] = path.split("/")[-1].split(".")[-2].split("_")[-1]
+        elif self.hparams.mode == 'test':
+            pickle_f_name = path.split("/")[-1].replace("flac", "pickle")
+            save_dict["WavId"] = path.split("/")[-1].split(".")[-2][4:]
 
-            if not os.path.exists(self.hparams.pk_dir):
-                os.mkdir(self.hparams.pk_dir)
-            # print(os.path.join(self.hparams.pk_dir.rstrip("/"), pickle_f_name))
-            with open(os.path.join(self.hparams.pk_dir.rstrip("/"), pickle_f_name), "wb") as f:
-                pickle.dump(save_dict, f, protocol=3)
-        else:
-            print("wav length smaller than 1.6s: " + path)  # 按照目前的超参数设置(3秒)，这段代码没用，不会有小于3秒的
-
+        if not os.path.exists(self.hparams.pk_dir):
+            os.mkdir(self.hparams.pk_dir)
+        # print(os.path.join(self.hparams.pk_dir.rstrip("/"), pickle_f_name))
+        with open(os.path.join(self.hparams.pk_dir.rstrip("/"), pickle_f_name), "wb") as f:
+            pickle.dump(save_dict, f, protocol=3)
 
 
 def main():
@@ -289,7 +285,7 @@ def main():
 
     # Data Process
     parser.add_argument("--segment_length", type=float,
-                        default=3, help="segment length in seconds")
+                        default=3.015, help="segment length in seconds")
     parser.add_argument("--spectrogram_scale", type=int, default=40,
                         help="scale of the input spectrogram")
     args = parser.parse_args()
