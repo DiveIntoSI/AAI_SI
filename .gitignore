@@ -37,3 +37,5 @@ ENV/
 #data为存放源文件的文件夹，data_pk为生成的pickle文件夹，均忽略
 data/
 data_pk/
+
+.ssh/
