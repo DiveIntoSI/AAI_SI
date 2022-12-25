@@ -274,26 +274,6 @@ class Preprocess():
             print("wav length smaller than 1.6s: " + path)  # 按照目前的超参数设置(3秒)，这段代码没用，不会有小于3秒的
 
 
-def save_train_val_txt(train_folder, data_folder):
-    # 对train_folder数据集进行分层划分,txt存入data_folder下
-    #  train_floder: 'data/train'
-    data = []
-    for speaker in os.listdir(train_folder):
-        label = int(speaker[-3:])
-        for speaker_one in os.listdir(os.path.join(train_folder, speaker)):
-            FileID = os.path.join(train_folder, speaker, speaker_one)
-            data.append([FileID, label])
-
-    df = pd.DataFrame(data, columns=['FileID', 'Label'])
-
-    # 对train按照比例划分出训练集和验证集
-    split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=111)
-
-    train_index, test_index = list(split.split(df, df["Label"]))[0]
-
-    df.loc[train_index.tolist()].to_csv(os.path.join(data_folder, "train_info.txt"), index=False)
-    df.loc[test_index.tolist()].to_csv(os.path.join(data_folder, "val_info.txt"), index=False)
-
 
 def main():
     # Hyperparameters
