@@ -20,10 +20,13 @@ optimizer_params = {
 trainer_params = {
     'use_cuda': True,
     'cuda_device_num': 0,
-    'cuda_device_nums': [0, 1],
     'epochs': 100,
     'train_batch_size': 32,
-    "parallel": False,
+    "model_load": {
+        "enable": False,
+        "path": str,
+        "epoch": int
+    },
     'logging': {
         'model_save_interval': 10,
         'img_save_interval': 10,
