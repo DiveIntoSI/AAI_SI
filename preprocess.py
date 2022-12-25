@@ -1,6 +1,10 @@
 import os
+import random
+import warnings
+import librosa
 import glob
 import pickle
+
 import argparse
 import webrtcvad
 import collections
@@ -13,6 +17,68 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import StratifiedShuffleSplit
 
 
+class NoisePerturbAugmentor(object):
+    """用于添加背景噪声的增强模型
+
+    :param min_snr_dB: 最小的信噪比，以分贝为单位
+    :type min_snr_dB: int
+    :param max_snr_dB: 最大的信噪比，以分贝为单位
+    :type max_snr_dB: int
+    :param noise_path: 噪声文件夹
+    :type noise_path: str
+    :param sr: 音频采样率，必须跟训练数据的一样
+    :type sr: int
+    """
+
+    def __init__(self, min_snr_dB=14, max_snr_dB=16, noise_path="data/noise", sr=16000):
+        self.sr = sr
+        self._min_snr_dB = min_snr_dB
+        self._max_snr_dB = max_snr_dB
+        self._noise_files = self.get_noise_file(noise_path=noise_path)
+
+    # 获取全部噪声数据
+    @staticmethod
+    def get_noise_file(noise_path):
+        noise_files = []
+        if not os.path.exists(noise_path): return noise_files
+        for file in os.listdir(noise_path):
+            noise_files.append(os.path.join(noise_path, file))
+        return noise_files
+
+    @staticmethod
+    def rms_db(wav):
+        """返回以分贝为单位的音频均方能量
+
+        :return: 均方能量(分贝)
+        :rtype: float
+        """
+        mean_square = np.mean(wav ** 2)
+        return 10 * np.log10(mean_square)
+
+    def __call__(self, wav):
+        """添加背景噪音音频
+
+        :param wav: librosa 读取的数据
+        :type wav: ndarray
+        """
+        # 如果没有噪声数据跳过
+        if len(self._noise_files) == 0:
+            print('could not find any noise file')
+            exit(1)
+        noise, _sr = librosa.load(random.choice(self._noise_files), sr=self.sr)
+        # 噪声大小
+        snr_dB = random.uniform(self._min_snr_dB, self._max_snr_dB)
+        noise_gain_db = min(self.rms_db(wav) - self.rms_db(noise) - snr_dB, 300)
+        noise *= 10. ** (noise_gain_db / 20.)
+        # 合并噪声数据
+        noise_new = np.zeros(wav.shape, dtype=np.float32)
+        if noise.shape[0] >= wav.shape[0]:
+            start = random.randint(0, noise.shape[0] - wav.shape[0])
+            noise_new[:wav.shape[0]] = noise[start: start + wav.shape[0]]
+        else:
+            start = random.randint(0, wav.shape[0] - noise.shape[0])
+            noise_new[start:start + noise.shape[0]] = noise[:]
+        return wav + noise_new
 
 
 class Frame(object):
@@ -30,6 +96,7 @@ class Preprocess():
         self.silence_clip_num = list()
         self.silence_clip_ratio = list()
         self.audio_duration = list()
+        self.NoiseAug = NoisePerturbAugmentor()
 
     def preprocess_data(self):
         path_list = []
@@ -47,7 +114,13 @@ class Preprocess():
             else:
                 wav_arr = wav_arr[(n_sample - singal_len) //
                                   2:(n_sample + singal_len) // 2]
-            self.create_pickle(path, wav_arr, sample_rate)
+
+            wav_arr_noised_ = self.NoiseAug((wav_arr / (2 ** 15)).astype(np.float32))  # 这里将int16格式”转“为float32
+            wav_arr_noised = (wav_arr_noised_ * (2 ** 15)).astype(np.int16)  # 再转回int16
+            # sf.write('tmp.wav', wav_arr_noised, 16000)  #保存修改后的声音，以试听。
+            self.create_pickle(path, wav_arr, sample_rate, noised=False)
+            if self.hparams.mode == 'train':  # 对训练集保存加噪声处理结果
+                self.create_pickle(path, wav_arr_noised, sample_rate, noised=True)
         plt.clf()
         plt.hist(self.silence_clip_ratio)
         plt.xlabel('silence ratio')
@@ -173,7 +246,7 @@ class Preprocess():
         if voiced_frames:
             yield b''.join([f.bytes for f in voiced_frames])
 
-    def create_pickle(self, path, wav_arr, sample_rate):
+    def create_pickle(self, path, wav_arr, sample_rate, noised=False):
         # 目前仅提取了 logmel_feats 特征
         if round((wav_arr.shape[0] / sample_rate), 1) >= self.hparams.segment_length:
             save_dict = {}
@@ -185,6 +258,7 @@ class Preprocess():
             pickle_f_name = None
             if self.hparams.mode == 'train':
                 pickle_f_name = path.split("/")[-1].replace("flac", "pickle")
+                if noised: pickle_f_name = pickle_f_name.replace('.pickle', '_noised.pickle')  # 对训练集保存加噪声处理结果
                 save_dict["SpkId"] = path.split("/")[-2]
                 save_dict["WavId"] = path.split("/")[-1].split(".")[-2].split("_")[-1]
             elif self.hparams.mode == 'test':
@@ -219,7 +293,6 @@ def save_train_val_txt(train_folder, data_folder):
 
     df.loc[train_index.tolist()].to_csv(os.path.join(data_folder, "train_info.txt"), index=False)
     df.loc[test_index.tolist()].to_csv(os.path.join(data_folder, "val_info.txt"), index=False)
-
 
 
 def main():
