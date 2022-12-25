@@ -11,15 +11,13 @@ from utils.utils import *
 
 
 class Trainer:
-    def __init__(self,
-                 model_params,
-                 optimizer_params,
-                 trainer_params):
+    def __init__(self,model_params,optimizer_params,trainer_params, dataset_params):
 
         # save arguments
         self.model_params = model_params
         self.optimizer_params = optimizer_params
         self.trainer_params = trainer_params
+        self.dataset_params = dataset_params
 
         # result folder, logger
         self.logger = getLogger(name='trainer')

@@ -60,19 +60,19 @@ dataset_params = {
 import logging
 from utils.utils import create_logger, copy_all_src
 #
-# from Trainer import Trainer
+from Trainer import Trainer
 
 
 def main():
     create_logger(**logger_params)
     _print_config()
 
-    # trainer = Trainer(model_params=model_params,
-    #                   optimizer_params=optimizer_params,
-    #                   trainer_params=trainer_params,
-    #                   dataset_params=dataset_params)
-    # copy_all_src(trainer.result_folder)
-    # trainer.run()
+    trainer = Trainer(model_params=model_params,
+                      optimizer_params=optimizer_params,
+                      trainer_params=trainer_params,
+                      dataset_params=dataset_params)
+    copy_all_src(trainer.result_folder)
+    trainer.run()
 
 
 
