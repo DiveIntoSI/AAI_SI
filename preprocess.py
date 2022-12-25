@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 from python_speech_features import logfbank
+import matplotlib.pyplot as plt
 from sklearn.model_selection import StratifiedShuffleSplit
 
 
@@ -25,6 +26,9 @@ class Frame(object):
 class Preprocess():
     def __init__(self, hparams):
         self.hparams = hparams
+        self.silence_clip_num = list()
+        self.silence_clip_ratio = list()
+        self.audio_duration = list()
 
     def preprocess_data(self):
         path_list = []
@@ -34,7 +38,6 @@ class Preprocess():
             path_list = [x for x in glob.iglob(os.path.join(self.hparams.in_dir.rstrip("/") + "/*.flac"))]
         for path in path_list:
             wav_arr, sample_rate = self.vad_process(path)
-            # 在这里加一个保存文件  待写
             # padding
             singal_len = int(self.hparams.segment_length * sample_rate)
             n_sample = wav_arr.shape[0]
@@ -44,6 +47,22 @@ class Preprocess():
                 wav_arr = wav_arr[(n_sample - singal_len) //
                                   2:(n_sample + singal_len) // 2]
             # self.create_pickle(path, wav_arr, sample_rate)
+        plt.clf()
+        plt.hist(self.silence_clip_ratio)
+        plt.xlabel('silence ratio')
+        plt.ylabel('sample num')
+        plt.savefig('output/silence_clip_ratio_histogram.png')
+        plt.clf()
+        plt.hist(self.silence_clip_num)
+        plt.xlabel('silence clip num')
+        plt.ylabel('sample num')
+        plt.savefig('output/silence_clip_num_histogram.png')
+        plt.clf()
+        plt.hist(self.audio_duration)
+        plt.xlabel('audio duration/s')
+        plt.ylabel('sample num')
+        plt.savefig('output/audio_duration_histogram.png')
+        plt.close()
 
     def vad_process(self, path):
         # VAD Process
@@ -58,7 +77,9 @@ class Preprocess():
         for i, segment in enumerate(segments):
             total_wav += segment
             n_segments += 1
-        # print(f'seg num:{n_segments:2d} {len(total_wav) / len(audio):.3f} {len(audio)/2/sample_rate:.1f}s {path}')
+        self.silence_clip_num.append(n_segments - 1)  # 统计静音片段数 每个静音片段进行一次分割
+        self.silence_clip_ratio.append(1 - len(total_wav) / len(audio))  # 统计静音比例
+        self.audio_duration.append(len(audio) / 2 / sample_rate)  # 统计音频时长
         # Without writing, unpack total_wav into numpy [N,1] array
         # 16bit PCM 기준 dtype=np.int16
         wav_arr = np.frombuffer(total_wav, dtype=np.int16)
