@@ -76,6 +76,9 @@ class Trainer:
         val_score_MX_spilt_epoch = []
 
         for i_spilt in range(n_spilt):
+            self.logger.info('=================================================================')
+            self.logger.info('Begin Spilt {:3d}'.format(i_spilt))
+            self.logger.info('=================================================================')
             train_info_txt = os.path.join(split_info_folder,
                                           'data_spilt' + f'_{n_spilt}',
                                           f'train_info{i_spilt}.txt')
@@ -106,11 +109,11 @@ class Trainer:
             # LR Decay
             self.scheduler.step()
 
-            # 测验证集
+            # 测验证集val
             val_score, val_loss = self._val_one_epoch(epoch)
             # save model
             if val_score > val_score_MX:
-                self.logger.info(f"Best Val Scroe at i_spilt {i_spilt} Epoch {epoch} Val Scroe{val_score}")
+                self.logger.info(f"Best Val Scroe at Spilt {i_spilt} Epoch {epoch} Val Scroe{val_score}")
                 val_score_MX = val_score
                 val_score_MX_spilt_epoch = [i_spilt, epoch]
                 checkpoint_dict = {
@@ -167,6 +170,10 @@ class Trainer:
                                     self.result_log, labels=['train_score'])
                 util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_2'],
                                     self.result_log, labels=['train_loss'])
+                util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_1'],
+                                    self.result_log, labels=['val_score'])
+                util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_2'],
+                                    self.result_log, labels=['val_loss'])
 
             if all_done:
                 self.logger.info(" *** Training Done *** ")
@@ -230,10 +237,6 @@ class Trainer:
             # update AM
             score_AM.update(score.item(), batch_size)
             loss_AM.update(loss.item(), batch_size)
-
-            if epoch == 1 and loop_cnt <= 10:
-                self.logger.info('Val Epoch {:3d}: Val {:3d},  Score: {:.4f},  Loss: {:.4f}'
-                                 .format(epoch, loop_cnt, score_AM.avg, loss_AM.avg))
 
         # Log Once, for each epoch
         self.logger.info('Val Epoch {:3d}: Val,  Score: {:.4f},  Loss: {:.4f}'
