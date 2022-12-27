@@ -80,7 +80,7 @@ class Trainer:
             val_dataset = MyDataSet(val_info_txt, add_noise, data_folder, feature_name)
             self.train_dataloader = DataLoader(train_dataset, batch_size=train_batch_size)
             self.val_dataloader = DataLoader(val_dataset, batch_size=train_batch_size)
-            self.run_i_spilt(i_spilt)
+            self._run_i_spilt(i_spilt)
     def _run_i_spilt(self, i_spilt):
 
         self.time_estimator.reset(self.start_epoch)
