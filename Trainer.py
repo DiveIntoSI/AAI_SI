@@ -94,6 +94,9 @@ class Trainer:
             val_score_MX, val_score_MX_spilt_epoch = self._run_i_spilt(i_spilt,
                                                                        val_score_MX,
                                                                        val_score_MX_spilt_epoch)
+
+        self.logger.info("Now, printing log array...")
+        util_print_log_array(self.logger, self.result_log)
         # 加载模型并获得测试的结果，代写
 
     def _run_i_spilt(self, i_spilt, val_score_MX, val_score_MX_spilt_epoch):
@@ -177,8 +180,6 @@ class Trainer:
 
             if all_done:
                 self.logger.info(" *** Training Done *** ")
-                self.logger.info("Now, printing log array...")
-                util_print_log_array(self.logger, self.result_log)
         return val_score_MX, val_score_MX_spilt_epoch
 
     def _train_one_epoch(self, epoch):
