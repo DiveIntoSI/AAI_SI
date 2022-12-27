@@ -1,7 +1,7 @@
 
 import torch
 from logging import getLogger
-
+from tqdm import tqdm
 from torch import nn
 from torch.optim import Adam as Optimizer
 from torch.optim.lr_scheduler import MultiStepLR as Scheduler
@@ -69,6 +69,10 @@ class Trainer:
         add_noise = self.dataset_params['add_noise']
         feature_name = self.dataset_params['feature_name']
         train_batch_size = self.trainer_params['train_batch_size']
+
+        val_score_MX = 0.0
+        val_score_MX_spilt_epoch = []
+
         for i_spilt in range(n_spilt):
             train_info_txt = os.path.join(split_info_folder,
                                           'data_spilt' + f'_{n_spilt}',
@@ -80,13 +84,16 @@ class Trainer:
             val_dataset = MyDataSet(val_info_txt, add_noise, data_folder, feature_name)
             self.train_dataloader = DataLoader(train_dataset, batch_size=train_batch_size)
             self.val_dataloader = DataLoader(val_dataset, batch_size=train_batch_size)
-            self._run_i_spilt(i_spilt)
-    def _run_i_spilt(self, i_spilt):
-        val_score_MX = 0.0
-        val_score_MX_ = []
+            val_score_MX, val_score_MX_spilt_epoch = self._run_i_spilt(i_spilt,
+                                                                       val_score_MX,
+                                                                       val_score_MX_spilt_epoch)
+        # 加载模型测试
+
+    def _run_i_spilt(self, i_spilt, val_score_MX, val_score_MX_spilt_epoch):
+
         #  模型初始化 代写
         self.time_estimator.reset(self.start_epoch)
-        for epoch in range(self.start_epoch, self.trainer_params['epochs']+1):
+        for epoch in tqdm(range(self.start_epoch, self.trainer_params['epochs']+1)):
             self.logger.info('=================================================================')
 
             # Train
@@ -99,7 +106,21 @@ class Trainer:
 
             # 测验证集
             val_score, val_loss = self._val_one_epoch(epoch)
-            # update val MX
+            # save model
+            if val_score > val_score_MX:
+                self.logger.info(f"Best Val Scroe at i_spilt {i_spilt} Epoch {epoch} Val Scroe{val_score}")
+                val_score_MX = val_score
+                val_score_MX_spilt_epoch = [i_spilt, epoch]
+                checkpoint_dict = {
+                    'epoch': epoch,
+                    'model_state_dict': self.model.state_dict(),
+                    'optimizer_state_dict': self.optimizer.state_dict(),
+                    'scheduler_state_dict': self.scheduler.state_dict(),
+                    'result_log': self.result_log.get_raw_data()
+                }
+                torch.save(checkpoint_dict, f'{self.result_folder}/checkpoint-BS-{i_spilt}_{epoch}.pt')
+
+            # update val
             self.result_log.append('val_score', epoch, val_score)
             self.result_log.append('val_loss', epoch, val_loss)
 
@@ -121,6 +142,11 @@ class Trainer:
                                     self.result_log, labels=['train_score'])
                 util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_2'],
                                     self.result_log, labels=['train_loss'])
+
+                util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_1'],
+                                    self.result_log, labels=['val_score'])
+                util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_2'],
+                                    self.result_log, labels=['val_loss'])
 
             if epoch % model_save_interval == 0:
                 self.logger.info("Saving trained_model")
@@ -144,6 +170,7 @@ class Trainer:
                 self.logger.info(" *** Training Done *** ")
                 self.logger.info("Now, printing log array...")
                 util_print_log_array(self.logger, self.result_log)
+        return val_score_MX, val_score_MX_spilt_epoch
 
     def _train_one_epoch(self, epoch):
         batch_size = self.trainer_params['train_batch_size']
@@ -189,7 +216,7 @@ class Trainer:
         loss_AM = AverageMeter()
 
         self.model.eval()
-        # 获得dataloader，代写
+
         for loop_cnt, (datas, labels) in enumerate(self.val_dataloader):
             outputs = self.model(datas)
             loss = self.loss(outputs, labels.float())
