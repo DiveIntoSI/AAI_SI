@@ -2,7 +2,7 @@
 # parameters
 
 
-from Model import MLPModel
+from Model.MLPModel import MLPModel
 
 model_params = {
     'model': MLPModel,
@@ -10,7 +10,7 @@ model_params = {
     'MLPModel_params': {
         'input_dim': 300*40,
         'ff_hidden_dim': 512,
-        'output_hidden_dim': 250
+        'output_dim': 250
     }
 }
 
@@ -30,7 +30,7 @@ trainer_params = {
     'use_cuda': True,
     'cuda_device_num': 0,
     'epochs': 100,
-    'train_batch_size': 32,
+    'train_batch_size': 128,
     "model_load": {
         "enable": False,
         "path": str,
@@ -60,7 +60,7 @@ logger_params = {
 dataset_params = {
     'data_folder': 'data_pk/train',
     'split_info_folder': 'data_spilt',
-    'n_spilt': 10,
+    'n_spilt': 3,
     'add_noise': True,
     'feature_name': 'LogMel_Features'
 }
@@ -70,17 +70,17 @@ import logging
 from utils.utils import create_logger, copy_all_src
 #
 from Trainer import Trainer
-
+from MyDataSet import save_train_val_txt
 
 def main():
     create_logger(**logger_params)
     _print_config()
-
+    save_train_val_txt(dataset_params)
     trainer = Trainer(model_params=model_params,
                       optimizer_params=optimizer_params,
                       trainer_params=trainer_params,
                       dataset_params=dataset_params)
-    copy_all_src(trainer.result_folder)
+    # copy_all_src(trainer.result_folder)
     trainer.run()
 
 

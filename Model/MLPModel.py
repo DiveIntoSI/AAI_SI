@@ -16,4 +16,21 @@ class MLPModel(nn.Module):
     def forward(self, input1):
         # input.shape: (batch, seq_len , embedding)
         input1 = input1.view(input1.shape[0], -1)
-        return self.W2(F.relu(self.W1(input1)))
+        out1 = self.W1(input1)
+        out1 = F.relu(out1)
+        return self.W2(out1)
+
+
+
+# model_params = {
+#     'model': MLPModel,
+#     'model_name': "MLPModel",
+#     'MLPModel_params': {
+#         'input_dim': 300*40,
+#         'ff_hidden_dim': 512,
+#         'output_dim': 250
+#     }
+# }
+#
+# model = model_params["model"]
+# tmp_model = model(**model_params[model_params["model_name"] + "_params"])

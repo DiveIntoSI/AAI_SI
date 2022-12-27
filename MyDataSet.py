@@ -22,15 +22,17 @@ def save_train_val_txt(dataset_params):
     save_dir = os.path.join(split_info_folder, f'data_spilt_{K}')
     # 如果已经存在就直接返回
     if os.path.exists(save_dir):
-        # pass
-        return save_dir
+        pass
+        # return save_dir
     else:
         # 不存在则执行分割
         os.makedirs(save_dir)
     data = []
     for speaker in os.listdir(data_folder):
-        label = int(speaker.split('.')[-2])
-        FileID = speaker
+        label = int(speaker[3:6])
+        FileID = speaker.split('.')[0]
+        if FileID.split('_')[-1] == 'noised':
+            FileID = FileID[:-7]
         data.append([FileID, label])
 
     df = pd.DataFrame(data, columns=['FileID', 'Label'])
@@ -66,5 +68,6 @@ class MyDataSet(Dataset):
         with open(item, "rb") as f:
             load_dict = pickle.load(f)
             data = load_dict[self.feature_name]
-        return data, self.data_info.loc[index]['Label']
+        data = data.astype(np.float32)
+        return data, self.data_info.loc[index]['Label']-1
 

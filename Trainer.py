@@ -7,6 +7,7 @@ from torch.optim import Adam as Optimizer
 from torch.optim.lr_scheduler import MultiStepLR as Scheduler
 
 from utils.utils import *
+
 from MyDataSet import MyDataSet
 from torch.utils.data import DataLoader
 
@@ -36,8 +37,9 @@ class Trainer:
             torch.set_default_tensor_type('torch.FloatTensor')
 
         # Main Components
-        model = model_params["model"]
-        self.model = model(**self.model_params[model_params["model_name"]+"_params"])
+        model_ = model_params["model"]
+        self.model = model_(**self.model_params[model_params["model_name"]+"_params"])
+
         self.optimizer = Optimizer(self.model.parameters(), **self.optimizer_params['optimizer'])
         self.scheduler = Scheduler(self.optimizer, **self.optimizer_params['scheduler'])
         # dataloader
@@ -183,19 +185,19 @@ class Trainer:
 
         for loop_cnt, (datas, labels) in enumerate(self.train_dataloader):
             outputs = self.model(datas)
-            loss = self.loss(outputs, labels.float())
+            loss = self.loss(outputs, labels.to(torch.int64))
             # back
             self.model.zero_grad()
             loss.backward()
             self.optimizer.step()
+            with torch.no_grad():
             # acc
-            predict = torch.max(outputs, dim=1).indices
-            predict += 1
-            score = torch.mean((predict == labels).float())
+                predict = torch.max(nn.Softmax(dim=1)(outputs), dim=1).indices
+                score = torch.mean((predict == labels).float())
 
             # update AM
-            score_AM.update(score.item(), batch_size)
-            loss_AM.update(loss.item(), batch_size)
+            score_AM.update(score.item(), datas.shape[0])
+            loss_AM.update(loss.item(), datas.shape[0])
 
             if epoch == 1 and loop_cnt <= 10:
                 self.logger.info('Epoch {:3d}: Train {:3d},  Score: {:.4f},  Loss: {:.4f}'
@@ -222,8 +224,7 @@ class Trainer:
             loss = self.loss(outputs, labels.float())
 
             # acc
-            predict = torch.max(outputs, dim=1).indices
-            predict += 1
+            predict = torch.max(nn.Softmax(dim=1)(outputs), dim=1).indices
             score = torch.mean((predict == labels).float())
 
             # update AM
@@ -231,11 +232,11 @@ class Trainer:
             loss_AM.update(loss.item(), batch_size)
 
             if epoch == 1 and loop_cnt <= 10:
-                self.logger.info('Epoch {:3d}: Val {:3d},  Score: {:.4f},  Loss: {:.4f}'
+                self.logger.info('Val Epoch {:3d}: Val {:3d},  Score: {:.4f},  Loss: {:.4f}'
                                  .format(epoch, loop_cnt, score_AM.avg, loss_AM.avg))
 
         # Log Once, for each epoch
-        self.logger.info('Epoch {:3d}: Val,  Score: {:.4f},  Loss: {:.4f}'
+        self.logger.info('Val Epoch {:3d}: Val,  Score: {:.4f},  Loss: {:.4f}'
                          .format(epoch, score_AM.avg, loss_AM.avg))
 
         return score_AM.avg, loss_AM.avg

@@ -41,7 +41,7 @@ process_start_time = datetime.now(pytz.timezone("Asia/Seoul"))
 
 print(process_start_time)
 
-exit()
+# exit()
 result_folder = './result/' + process_start_time.strftime("%Y%m%d_%H%M%S") + '{desc}'
 
 
