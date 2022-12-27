@@ -221,7 +221,7 @@ class Trainer:
 
         for loop_cnt, (datas, labels) in enumerate(self.val_dataloader):
             outputs = self.model(datas)
-            loss = self.loss(outputs, labels.float())
+            loss = self.loss(outputs, labels.to(torch.int64))
 
             # acc
             predict = torch.max(nn.Softmax(dim=1)(outputs), dim=1).indices
