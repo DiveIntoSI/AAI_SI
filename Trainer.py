@@ -236,8 +236,8 @@ class Trainer:
             score = torch.mean((predict == labels).float())
 
             # update AM
-            score_AM.update(score.item(), batch_size)
-            loss_AM.update(loss.item(), batch_size)
+            score_AM.update(score.item(), datas.shape[0])
+            loss_AM.update(loss.item(), datas.shape[0])
 
         # Log Once, for each epoch
         self.logger.info('Val Epoch {:3d}: Val,  Score: {:.4f},  Loss: {:.4f}'
