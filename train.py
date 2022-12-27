@@ -3,15 +3,22 @@
 
 
 from Model.MLPModel import MLPModel
+from Model.SAEPModel import SAEPModel
 
 model_params = {
-    'model': MLPModel,
-    'model_name': "MLPModel",
+    'model': SAEPModel,
+    'model_name': "SAEPModel",
     'MLPModel_params': {
         'input_dim': 300*40,
-        'ff_hidden_dim': 512,
+        'ff_hidden_dim': 256,
         'output_dim': 250
-    }
+    },
+    'SAEPModel_params': {
+        'seq_len': 300,
+        'input_dim': 40,
+        'hidden_dim': 512,
+        'dense_dim': (128,250,250)
+    },
 }
 
 optimizer_params = {
@@ -21,7 +28,7 @@ optimizer_params = {
         'weight_decay': 1e-6
     },
     'scheduler': {
-        'milestones': [201, ],
+        'milestones': [90, ],
         'gamma': 0.1
     }
 }
@@ -30,7 +37,7 @@ trainer_params = {
     'use_cuda': True,
     'cuda_device_num': 0,
     'epochs': 100,
-    'train_batch_size': 128,
+    'train_batch_size': 1024,
     "model_load": {
         "enable": False,
         "path": str,
