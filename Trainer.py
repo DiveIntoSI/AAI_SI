@@ -84,14 +84,14 @@ class Trainer:
             val_dataset = MyDataSet(val_info_txt, add_noise, data_folder, feature_name)
             self.train_dataloader = DataLoader(train_dataset, batch_size=train_batch_size)
             self.val_dataloader = DataLoader(val_dataset, batch_size=train_batch_size)
+            model = self.model_params["model"]
+            self.model = model(**self.model_params[self.model_params["model_name"] + "_params"])
             val_score_MX, val_score_MX_spilt_epoch = self._run_i_spilt(i_spilt,
                                                                        val_score_MX,
                                                                        val_score_MX_spilt_epoch)
-        # 加载模型测试
+        # 加载模型并获得测试的结果，代写
 
     def _run_i_spilt(self, i_spilt, val_score_MX, val_score_MX_spilt_epoch):
-
-        #  模型初始化 代写
         self.time_estimator.reset(self.start_epoch)
         for epoch in tqdm(range(self.start_epoch, self.trainer_params['epochs']+1)):
             self.logger.info('=================================================================')
