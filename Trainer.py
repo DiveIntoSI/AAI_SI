@@ -82,12 +82,12 @@ class Trainer:
             self.val_dataloader = DataLoader(val_dataset, batch_size=train_batch_size)
             self._run_i_spilt(i_spilt)
     def _run_i_spilt(self, i_spilt):
-
+        val_score_MX = 0.0
+        val_score_MX_ = []
+        #  模型初始化 代写
         self.time_estimator.reset(self.start_epoch)
         for epoch in range(self.start_epoch, self.trainer_params['epochs']+1):
             self.logger.info('=================================================================')
-
-
 
             # Train
             train_score, train_loss = self._train_one_epoch(epoch)
@@ -97,7 +97,11 @@ class Trainer:
             # LR Decay
             self.scheduler.step()
 
-
+            # 测验证集
+            val_score, val_loss = self._val_one_epoch(epoch)
+            # update val MX
+            self.result_log.append('val_score', epoch, val_score)
+            self.result_log.append('val_loss', epoch, val_loss)
 
             ############################
             # Logs & Checkpoint
@@ -118,7 +122,7 @@ class Trainer:
                 util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_2'],
                                     self.result_log, labels=['train_loss'])
 
-            if all_done or (epoch % model_save_interval) == 0:
+            if epoch % model_save_interval == 0:
                 self.logger.info("Saving trained_model")
                 checkpoint_dict = {
                     'epoch': epoch,
@@ -129,7 +133,7 @@ class Trainer:
                 }
                 torch.save(checkpoint_dict, '{}/checkpoint-{}.pt'.format(self.result_folder, epoch))
 
-            if all_done or (epoch % img_save_interval) == 0:
+            if epoch % img_save_interval == 0:
                 image_prefix = '{}/img/checkpoint-{}'.format(self.result_folder, epoch)
                 util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_1'],
                                     self.result_log, labels=['train_score'])
@@ -149,7 +153,7 @@ class Trainer:
         loss_AM = AverageMeter()
 
         self.model.train()
-        # 获得dataloader，代写
+
         for loop_cnt, (datas, labels) in enumerate(self.train_dataloader):
             outputs = self.model(datas)
             loss = self.loss(outputs, labels.float())
@@ -172,6 +176,39 @@ class Trainer:
 
         # Log Once, for each epoch
         self.logger.info('Epoch {:3d}: Train,  Score: {:.4f},  Loss: {:.4f}'
+                         .format(epoch, score_AM.avg, loss_AM.avg))
+
+        return score_AM.avg, loss_AM.avg
+
+
+    def _val_one_epoch(self, epoch):
+        batch_size = self.trainer_params['train_batch_size']
+
+        # train
+        score_AM = AverageMeter()
+        loss_AM = AverageMeter()
+
+        self.model.eval()
+        # 获得dataloader，代写
+        for loop_cnt, (datas, labels) in enumerate(self.val_dataloader):
+            outputs = self.model(datas)
+            loss = self.loss(outputs, labels.float())
+
+            # acc
+            predict = torch.max(outputs, dim=1).indices
+            predict += 1
+            score = torch.mean((predict == labels).float())
+
+            # update AM
+            score_AM.update(score.item(), batch_size)
+            loss_AM.update(loss.item(), batch_size)
+
+            if epoch == 1 and loop_cnt <= 10:
+                self.logger.info('Epoch {:3d}: Val {:3d},  Score: {:.4f},  Loss: {:.4f}'
+                                 .format(epoch, loop_cnt, score_AM.avg, loss_AM.avg))
+
+        # Log Once, for each epoch
+        self.logger.info('Epoch {:3d}: Val,  Score: {:.4f},  Loss: {:.4f}'
                          .format(epoch, score_AM.avg, loss_AM.avg))
 
         return score_AM.avg, loss_AM.avg
