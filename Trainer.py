@@ -2,13 +2,13 @@
 import torch
 from logging import getLogger
 
-from Model import *
-
+from torch import nn
 from torch.optim import Adam as Optimizer
 from torch.optim.lr_scheduler import MultiStepLR as Scheduler
 
 from utils.utils import *
-
+from MyDataSet import MyDataSet
+from torch.utils.data import DataLoader
 
 class Trainer:
     def __init__(self,model_params,optimizer_params,trainer_params, dataset_params):
@@ -35,18 +35,18 @@ class Trainer:
             device = torch.device('cpu')
             torch.set_default_tensor_type('torch.FloatTensor')
 
-        Model = None #
-
         # Main Components
-        self.model = Model(**self.model_params)
+        model = model_params["model"]
+        self.model = model(**self.model_params[model_params["model_name"]+"_params"])
         self.optimizer = Optimizer(self.model.parameters(), **self.optimizer_params['optimizer'])
         self.scheduler = Scheduler(self.optimizer, **self.optimizer_params['scheduler'])
-        # dataloader 代写
-        self.dataloader = None
-        # loss 代写
-        self.loss = None
+        # dataloader
+        self.train_dataloader = None
+        self.val_dataloader = None
+        # loss
+        self.loss = nn.CrossEntropyLoss()
 
-        # 加载模型
+        # 加载模型( 未验证
         self.start_epoch = 1
         model_load = trainer_params['model_load']
         if model_load['enable']:
@@ -63,18 +63,41 @@ class Trainer:
         self.time_estimator = TimeEstimator()
 
     def run(self):
-        # k折 代写
+        n_spilt = self.dataset_params['n_spilt']
+        data_folder = self.dataset_params['data_folder']
+        split_info_folder = self.dataset_params['split_info_folder']
+        add_noise = self.dataset_params['add_noise']
+        feature_name = self.dataset_params['feature_name']
+        train_batch_size = self.trainer_params['train_batch_size']
+        for i_spilt in range(n_spilt):
+            train_info_txt = os.path.join(split_info_folder,
+                                          'data_spilt' + f'_{n_spilt}',
+                                          f'train_info{i_spilt}.txt')
+            val_info_txt = os.path.join(split_info_folder,
+                                        'data_spilt' + f'_{n_spilt}',
+                                        f'val_info{i_spilt}.txt')
+            train_dataset = MyDataSet(train_info_txt, add_noise, data_folder, feature_name)
+            val_dataset = MyDataSet(val_info_txt, add_noise, data_folder, feature_name)
+            self.train_dataloader = DataLoader(train_dataset, batch_size=train_batch_size)
+            self.val_dataloader = DataLoader(val_dataset, batch_size=train_batch_size)
+            self.run_i_spilt(i_spilt)
+    def _run_i_spilt(self, i_spilt):
+
         self.time_estimator.reset(self.start_epoch)
         for epoch in range(self.start_epoch, self.trainer_params['epochs']+1):
             self.logger.info('=================================================================')
 
-            # LR Decay
-            self.scheduler.step()
+
 
             # Train
             train_score, train_loss = self._train_one_epoch(epoch)
             self.result_log.append('train_score', epoch, train_score)
             self.result_log.append('train_loss', epoch, train_loss)
+
+            # LR Decay
+            self.scheduler.step()
+
+
 
             ############################
             # Logs & Checkpoint
@@ -121,20 +144,22 @@ class Trainer:
     def _train_one_epoch(self, epoch):
         batch_size = self.trainer_params['train_batch_size']
 
+        # train
         score_AM = AverageMeter()
         loss_AM = AverageMeter()
 
         self.model.train()
         # 获得dataloader，代写
-        for loop_cnt, (datas, labels) in enumerate(self.dataloader):
-            outputs = self.model(datas).squeeze(dim=1)
+        for loop_cnt, (datas, labels) in enumerate(self.train_dataloader):
+            outputs = self.model(datas)
             loss = self.loss(outputs, labels.float())
             # back
             self.model.zero_grad()
             loss.backward()
             self.optimizer.step()
             # acc
-            predict = (outputs >= 0.5)
+            predict = torch.max(outputs, dim=1).indices
+            predict += 1
             score = torch.mean((predict == labels).float())
 
             # update AM

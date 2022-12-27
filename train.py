@@ -1,8 +1,17 @@
 ##########################################################################################
 # parameters
 
+
+from Model import MLPModel
+
 model_params = {
-    'model_name': 'STNet',
+    'model': MLPModel,
+    'model_name': "MLPModel",
+    'MLPModel_params': {
+        'input_dim': 300*40,
+        'ff_hidden_dim': 512,
+        'output_hidden_dim': 250
+    }
 }
 
 optimizer_params = {
