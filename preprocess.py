@@ -4,7 +4,8 @@ import warnings
 import librosa
 import glob
 import pickle
-
+import torch
+import fairseq
 import argparse
 import webrtcvad
 import collections
@@ -97,6 +98,11 @@ class Preprocess():
         self.silence_clip_ratio = list()
         self.audio_duration = list()
         self.NoiseAug = NoisePerturbAugmentor()
+        cp_path = 'Model/wav2vec_small.pt'
+        self.wav2vec_device = 'cuda'
+        self.wav2vec_model, _cfg, _task = fairseq.checkpoint_utils.load_model_ensemble_and_task([cp_path])
+        self.wav2vec_model = self.wav2vec_model[0].to(self.wav2vec_device)
+        self.wav2vec_model.eval()
 
     def preprocess_data(self):
         path_list = []
@@ -246,14 +252,23 @@ class Preprocess():
         if voiced_frames:
             yield b''.join([f.bytes for f in voiced_frames])
 
+    def wav2vec(self, wav_arr):
+        wav_arr_normed = (wav_arr - wav_arr.min()) / (wav_arr.max() - wav_arr.min())
+        wav_arr_standardized = (wav_arr_normed - wav_arr_normed.mean()) / wav_arr_normed.std()
+        inp = torch.tensor(wav_arr_standardized).to(self.wav2vec_device).float()
+        output_feats = self.wav2vec_model(inp[None, :], mask=False, features_only=True)['features']
+        return output_feats
+
     def create_pickle(self, path, wav_arr, sample_rate, noised=False):
         # 目前仅提取了 logmel_feats 特征
         save_dict = {}
         logmel_feats = logfbank(
             wav_arr, samplerate=sample_rate, nfilt=self.hparams.spectrogram_scale)
         # print("created logmel feats from audio data. np array of shape:"+str(logmel_feats.shape))
-
         save_dict["LogMel_Features"] = logmel_feats
+        wav2vec_feats = self.wav2vec(wav_arr)  # 下面开始使用预训练模型wav2vec生成特征
+        save_dict["Wav2vec_Features"] = wav2vec_feats[0].detach().cpu().numpy()
+        save_dict["Audio_Ary"] = wav_arr
         pickle_f_name = None
         if self.hparams.mode == 'train':
             pickle_f_name = path.split("/")[-1].replace("flac", "pickle")
