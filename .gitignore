@@ -39,3 +39,5 @@ data/
 data_pk/
 
 .ssh/
+
+Model/wav2vec_small.pt
