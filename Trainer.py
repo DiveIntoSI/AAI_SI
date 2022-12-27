@@ -35,7 +35,7 @@ class Trainer:
             device = torch.device('cpu')
             torch.set_default_tensor_type('torch.FloatTensor')
 
-
+        Model = None #
 
         # Main Components
         self.model = Model(**self.model_params)

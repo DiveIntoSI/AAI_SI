@@ -52,7 +52,8 @@ dataset_params = {
     'data_folder': 'data_pk/train',
     'split_info_folder': 'data_spilt',
     'n_spilt': 10,
-    'add_noise': True
+    'add_noise': True,
+    'feature_name': 'LogMel_Features'
 }
 ##########################################################################################
 # main
