@@ -49,9 +49,8 @@ logger_params = {
 }
 
 dataset_params = {
-    'raw_data_folder': 'data/train',
+    'data_folder': 'data_pk/train',
     'split_info_folder': 'data_spilt',
-    'train_data_folder': 'data_pk/train',
     'n_spilt': 10,
     'add_noise': True
 }

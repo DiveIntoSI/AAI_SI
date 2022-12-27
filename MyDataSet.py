@@ -13,7 +13,7 @@ from sklearn.model_selection import StratifiedShuffleSplit
 def save_train_val_txt(dataset_params):
     # 对train_folder数据集进行分层划分,txt存入data_folder下
     #  train_floder: 'data/train'
-    raw_data_folder = dataset_params["raw_data_folder"]
+    data_folder = dataset_params["data_folder"]
     split_info_folder = dataset_params["split_info_folder"]
     K = dataset_params['n_spilt']
     if not os.path.exists(split_info_folder):
@@ -28,11 +28,10 @@ def save_train_val_txt(dataset_params):
         # 不存在则执行分割
         os.makedirs(save_dir)
     data = []
-    for speaker in os.listdir(raw_data_folder):
-        label = int(speaker[-3:])
-        for speaker_one in os.listdir(os.path.join(raw_data_folder, speaker)):
-            FileID = speaker_one
-            data.append([FileID, label])
+    for speaker in os.listdir(data_folder):
+        label = int(speaker.split('.')[-2])
+        FileID = speaker
+        data.append([FileID, label])
 
     df = pd.DataFrame(data, columns=['FileID', 'Label'])
 
@@ -44,26 +43,28 @@ def save_train_val_txt(dataset_params):
     return save_dir
 
 
-
 class MyDataSet(Dataset):
-    def __init__(self, info_txt, add_noise, data_folder):
+    def __init__(self, info_txt: str, add_noise: bool, data_folder: str, feature_name:str):
         self.info_txt = info_txt
+        self.data_info = pd.read_csv(info_txt)
+
         self.add_noise = add_noise
         self.data_folder = data_folder
-        self.data_info = pd.read_csv(info_txt)
+        self.feature_name = feature_name
+        random.seed(111)
 
     def __len__(self):
         return len(self.data_info)
 
     def __getitem__(self, index):
         file_id = self.data_info.loc[index]['FileID']
-        if self.add_noise:
+        if self.add_noise and random.random() < 0.5:
+            # 50的概率加噪声
             file_id += '_noised'
-        item = os.path.join(self.data_folder, file_id+'.pickle')
+        item = os.path.join(self.data_folder, file_id + '.pickle')
         data = None
         with open(item, "rb") as f:
             load_dict = pickle.load(f)
-            data = load_dict["LogMel_Features"]
+            data = load_dict[self.feature_name]
         return data, self.data_info.loc[index]['Label']
-
 
