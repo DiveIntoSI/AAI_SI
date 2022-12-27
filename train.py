@@ -37,7 +37,7 @@ trainer_params = {
     'use_cuda': True,
     'cuda_device_num': 0,
     'epochs': 100,
-    'train_batch_size': 512,
+    'train_batch_size': 128,
     "model_load": {
         "enable": False,
         "path": str,
