@@ -114,7 +114,7 @@ class Preprocess():
             missing_len = seq_len - (seq_end - seq_start)
             if missing_len > 0:
                 if missing_len / seq_len > 0.3 and seq_start != 0:
-                    break #
+                    break  # 舍弃空白长的片段
                 seq_arr = np.hstack((sample_ary[seq_start:seq_end], np.zeros(missing_len)))
             else:
                 seq_arr = sample_ary[seq_start:seq_end]
@@ -134,8 +134,9 @@ class Preprocess():
             # padding
             split_len = int(self.hparams.segment_length * sample_rate)
             # 训练集分割时不重叠，测试集重叠30%
-            split_arys = self.split_sample(wav_arr, split_len, overlap_rate=0 if self.hparams.mode == 'train' else 0.3)
-            for seq_index, seq_ary in enumerate(split_arys):
+            split_slices = self.split_sample(wav_arr, split_len,
+                                             overlap_rate=0 if self.hparams.mode == 'train' else 0.3)
+            for seq_index, seq_ary in enumerate(split_slices):
                 self.create_pickle(path, seq_ary, sample_rate, seq_index=seq_index, noised=False)
                 if self.hparams.mode == 'train':  # 对训练集保存加噪声处理结果
                     wav_arr_noised_ = self.NoiseAug((seq_ary / (2 ** 15)).astype(np.float32))  # 这里将int16格式”转“为float32
@@ -158,6 +159,7 @@ class Preprocess():
         plt.ylabel('sample num')
         plt.savefig(f'output/{self.hparams.mode}_audio_duration_histogram.png')
         plt.close()
+        print('total split seq num:', self.split_seq_num)
 
     def vad_process(self, path):
         # VAD Process
@@ -268,6 +270,7 @@ class Preprocess():
             yield b''.join([f.bytes for f in voiced_frames])
 
     def wav2vec(self, wav_arr):
+        wav_arr = wav_arr.astype(np.int32)
         wav_arr_normed = (wav_arr - wav_arr.min()) / (wav_arr.max() - wav_arr.min())
         wav_arr_standardized = (wav_arr_normed - wav_arr_normed.mean()) / wav_arr_normed.std()
         inp = torch.tensor(wav_arr_standardized).to(self.wav2vec_device).float()
