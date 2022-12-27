@@ -103,6 +103,25 @@ class Preprocess():
         self.wav2vec_model, _cfg, _task = fairseq.checkpoint_utils.load_model_ensemble_and_task([cp_path])
         self.wav2vec_model = self.wav2vec_model[0].to(self.wav2vec_device)
         self.wav2vec_model.eval()
+        self.split_seq_num = 0
+
+    def split_sample(self, sample_ary, seq_len, overlap_rate=0):
+        sample_len = sample_ary.shape[0]
+        split_seqs = list()
+        seq_start = 0
+        while True:
+            seq_end = min(seq_start + seq_len, sample_len)
+            missing_len = seq_len - (seq_end - seq_start)
+            if missing_len > 0:
+                if missing_len / seq_len > 0.3 and seq_start != 0:
+                    break #
+                seq_arr = np.hstack((sample_ary[seq_start:seq_end], np.zeros(missing_len)))
+            else:
+                seq_arr = sample_ary[seq_start:seq_end]
+            split_seqs.append(seq_arr)
+            self.split_seq_num += 1
+            seq_start = seq_start - int(seq_len * overlap_rate) + seq_len
+        return split_seqs
 
     def preprocess_data(self):
         path_list = []
@@ -113,20 +132,16 @@ class Preprocess():
         for path in tqdm(path_list):
             wav_arr, sample_rate = self.vad_process(path)
             # padding
-            singal_len = int(self.hparams.segment_length * sample_rate)
-            n_sample = wav_arr.shape[0]
-            if n_sample < singal_len:
-                wav_arr = np.hstack((wav_arr, np.zeros(singal_len - n_sample)))
-            else:
-                wav_arr = wav_arr[(n_sample - singal_len) //
-                                  2:(n_sample + singal_len) // 2]
-
-            wav_arr_noised_ = self.NoiseAug((wav_arr / (2 ** 15)).astype(np.float32))  # 这里将int16格式”转“为float32
-            wav_arr_noised = (wav_arr_noised_ * (2 ** 15)).astype(np.int16)  # 再转回int16
-            # sf.write('tmp.wav', wav_arr_noised, 16000)  #保存修改后的声音，以试听。
-            self.create_pickle(path, wav_arr, sample_rate, noised=False)
-            if self.hparams.mode == 'train':  # 对训练集保存加噪声处理结果
-                self.create_pickle(path, wav_arr_noised, sample_rate, noised=True)
+            split_len = int(self.hparams.segment_length * sample_rate)
+            # 训练集分割时不重叠，测试集重叠30%
+            split_arys = self.split_sample(wav_arr, split_len, overlap_rate=0 if self.hparams.mode == 'train' else 0.3)
+            for seq_index, seq_ary in enumerate(split_arys):
+                self.create_pickle(path, seq_ary, sample_rate, seq_index=seq_index, noised=False)
+                if self.hparams.mode == 'train':  # 对训练集保存加噪声处理结果
+                    wav_arr_noised_ = self.NoiseAug((seq_ary / (2 ** 15)).astype(np.float32))  # 这里将int16格式”转“为float32
+                    wav_arr_noised = (wav_arr_noised_ * (2 ** 15)).astype(np.int16)  # 再转回int16
+                    # sf.write('tmp.wav', wav_arr_noised, 16000)  #保存修改后的声音，以试听。
+                    self.create_pickle(path, wav_arr_noised, sample_rate, seq_index=seq_index, noised=True)
         plt.clf()
         plt.hist(self.silence_clip_ratio)
         plt.xlabel('silence ratio')
@@ -259,7 +274,7 @@ class Preprocess():
         output_feats = self.wav2vec_model(inp[None, :], mask=False, features_only=True)['features']
         return output_feats
 
-    def create_pickle(self, path, wav_arr, sample_rate, noised=False):
+    def create_pickle(self, path, wav_arr, sample_rate, seq_index, noised=False):
         # 目前仅提取了 logmel_feats 特征
         save_dict = {}
         logmel_feats = logfbank(
@@ -271,12 +286,12 @@ class Preprocess():
         save_dict["Audio_Ary"] = wav_arr
         pickle_f_name = None
         if self.hparams.mode == 'train':
-            pickle_f_name = path.split("/")[-1].replace("flac", "pickle")
+            pickle_f_name = path.split("/")[-1].replace(".flac", f"_{seq_index:03d}.pickle")
             if noised: pickle_f_name = pickle_f_name.replace('.pickle', '_noised.pickle')  # 对训练集保存加噪声处理结果
             save_dict["SpkId"] = path.split("/")[-2]
             save_dict["WavId"] = path.split("/")[-1].split(".")[-2].split("_")[-1]
         elif self.hparams.mode == 'test':
-            pickle_f_name = path.split("/")[-1].replace("flac", "pickle")
+            pickle_f_name = path.split("/")[-1].replace(".flac", f"_{seq_index:03d}.pickle")
             save_dict["WavId"] = path.split("/")[-1].split(".")[-2][4:]
 
         if not os.path.exists(self.hparams.pk_dir):
