@@ -1,4 +1,74 @@
-numpy==1.23.4
-python_speech_features==0.6
-soundfile==0.11.0
+antlr4-python3-runtime==4.9.3
+appdirs @ file:///home/conda/feedstock_root/build_artifacts/appdirs_1603108395799/work
+audioread @ file:///home/conda/feedstock_root/build_artifacts/audioread_1667037069502/work
+bitarray==2.6.1
+brotlipy==0.7.0
+certifi==2022.12.7
+cffi @ file:///croot/cffi_1670423208954/work
+charset-normalizer @ file:///tmp/build/80754af9/charset-normalizer_1630003229654/work
+colorama==0.4.6
+contourpy==1.0.6
+cryptography @ file:///croot/cryptography_1665612644927/work
+cycler @ file:///home/conda/feedstock_root/build_artifacts/cycler_1635519461629/work
+Cython==0.29.32
+decorator @ file:///home/conda/feedstock_root/build_artifacts/decorator_1641555617451/work
+docopt==0.6.2
+fairseq==0.12.2
+filelock==3.8.2
+flit_core @ file:///opt/conda/conda-bld/flit-core_1644941570762/work/source/flit_core
+fonttools==4.38.0
+huggingface-hub==0.11.1
+hydra-core==1.0.7
+idna @ file:///croot/idna_1666125576474/work
+importlib-metadata @ file:///home/conda/feedstock_root/build_artifacts/importlib-metadata_1671416996338/work
+importlib-resources==5.10.1
+joblib @ file:///home/conda/feedstock_root/build_artifacts/joblib_1663332044897/work
+kiwisolver==1.4.4
+librosa @ file:///home/conda/feedstock_root/build_artifacts/librosa_1656336149289/work
+llvmlite==0.39.1
+lxml==4.9.2
+matplotlib==3.6.2
+mkl-fft==1.3.1
+mkl-random @ file:///tmp/build/80754af9/mkl_random_1626186064646/work
+mkl-service==2.4.0
+numba @ file:///croot/numba_1670258325998/work
+numpy @ file:///croot/numpy_and_numpy_base_1668593735768/work
+omegaconf==2.3.0
+packaging @ file:///home/conda/feedstock_root/build_artifacts/packaging_1670530880680/work
+pandas==1.5.2
+Pillow==9.2.0
+pipreqs==0.4.11
+pooch @ file:///home/conda/feedstock_root/build_artifacts/pooch_1643032624649/work
+portalocker==2.6.0
+pycparser @ file:///tmp/build/80754af9/pycparser_1636541352034/work
+pyOpenSSL @ file:///opt/conda/conda-bld/pyopenssl_1643788558760/work
+pyparsing @ file:///home/conda/feedstock_root/build_artifacts/pyparsing_1652235407899/work
+PySocks @ file:///tmp/build/80754af9/pysocks_1605305779399/work
+python-dateutil @ file:///home/conda/feedstock_root/build_artifacts/python-dateutil_1626286286081/work
+python-speech-features==0.6
+pytz==2022.7
+PyYAML==6.0
+regex==2022.10.31
+requests @ file:///opt/conda/conda-bld/requests_1657734628632/work
+resampy @ file:///home/conda/feedstock_root/build_artifacts/resampy_1663087224680/work
+s3prl==0.4.10
+sacrebleu==2.3.1
+scikit-learn @ file:///croot/scikit-learn_1667587546862/work
+scipy==1.9.3
+six @ file:///tmp/build/80754af9/six_1644875935023/work
+soundfile @ file:///home/conda/feedstock_root/build_artifacts/pysoundfile_1665058838115/work
+tabulate==0.9.0
+threadpoolctl @ file:///home/conda/feedstock_root/build_artifacts/threadpoolctl_1643647933166/work
+tokenizers==0.13.2
+torch==1.13.0
+torchaudio==0.13.0
+torchvision==0.14.0
+tornado @ file:///home/conda/feedstock_root/build_artifacts/tornado_1648827257044/work
+tqdm==4.64.1
+transformers==4.25.1
+typing_extensions @ file:///croot/typing_extensions_1669924550328/work
+urllib3 @ file:///croot/urllib3_1666298941550/work
+Wave==0.0.2
 webrtcvad==2.0.10
+yarg==0.1.9
+zipp @ file:///home/conda/feedstock_root/build_artifacts/zipp_1669453021653/work
