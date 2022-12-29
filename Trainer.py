@@ -37,18 +37,20 @@ class Trainer:
             torch.set_default_tensor_type('torch.FloatTensor')
 
         # Main Components
-        model_ = model_params["model"]
-        self.model = model_(**self.model_params[model_params["model_name"]+"_params"])
-
-        self.optimizer = Optimizer(self.model.parameters(), **self.optimizer_params['optimizer'])
-        self.scheduler = Scheduler(self.optimizer, **self.optimizer_params['scheduler'])
+        # model_ = model_params["model"]
+        # self.model = model_(**self.model_params[model_params["model_name"]+"_params"])
+        # self.optimizer = Optimizer(self.model.parameters(), **self.optimizer_params['optimizer'])
+        # self.scheduler = Scheduler(self.optimizer, **self.optimizer_params['scheduler'])
+        self.model = None
+        self.optimizer = None
+        self.scheduler = None
         # dataloader
         self.train_dataloader = None
         self.val_dataloader = None
         # loss
         self.loss = nn.CrossEntropyLoss()
 
-        # 加载模型( 未验证
+        # 加载模型（未验证
         self.start_epoch = 1
         model_load = trainer_params['model_load']
         if model_load['enable']:
@@ -87,10 +89,20 @@ class Trainer:
                                         f'val_info{i_spilt}.txt')
             train_dataset = MyDataSet(train_info_txt, add_noise, data_folder, feature_name)
             val_dataset = MyDataSet(val_info_txt, add_noise, data_folder, feature_name)
-            self.train_dataloader = DataLoader(train_dataset, batch_size=train_batch_size)
-            self.val_dataloader = DataLoader(val_dataset, batch_size=train_batch_size)
-            model = self.model_params["model"]
-            self.model = model(**self.model_params[self.model_params["model_name"] + "_params"])
+            self.train_dataloader = DataLoader(train_dataset,
+                                               batch_size=train_batch_size,
+                                               shuffle=True,
+                                               generator = torch.Generator(device='cuda')
+                                               )
+            self.val_dataloader = DataLoader(val_dataset,
+                                             batch_size=train_batch_size,
+                                             shuffle=True,
+                                             generator=torch.Generator(device='cuda'))
+            # 模型初始化 代写
+            model_ = self.model_params["model"]
+            self.model = model_(**self.model_params[self.model_params["model_name"] + "_params"])
+            self.optimizer = Optimizer(self.model.parameters(), **self.optimizer_params['optimizer'])
+            self.scheduler = Scheduler(self.optimizer, **self.optimizer_params['scheduler'])
             val_score_MX, val_score_MX_spilt_epoch = self._run_i_spilt(i_spilt,
                                                                        val_score_MX,
                                                                        val_score_MX_spilt_epoch)
@@ -183,8 +195,6 @@ class Trainer:
         return val_score_MX, val_score_MX_spilt_epoch
 
     def _train_one_epoch(self, epoch):
-        batch_size = self.trainer_params['train_batch_size']
-
         # train
         score_AM = AverageMeter()
         loss_AM = AverageMeter()
@@ -198,8 +208,9 @@ class Trainer:
             self.model.zero_grad()
             loss.backward()
             self.optimizer.step()
-            with torch.no_grad():
+
             # acc
+            with torch.no_grad():
                 predict = torch.max(nn.Softmax(dim=1)(outputs), dim=1).indices
                 score = torch.mean((predict == labels).float())
 
@@ -219,8 +230,6 @@ class Trainer:
 
 
     def _val_one_epoch(self, epoch):
-        batch_size = self.trainer_params['train_batch_size']
-
         # train
         score_AM = AverageMeter()
         loss_AM = AverageMeter()

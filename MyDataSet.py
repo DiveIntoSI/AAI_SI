@@ -32,7 +32,7 @@ def save_train_val_txt(dataset_params):
         label = int(speaker[3:6])
         FileID = speaker.split('.')[0]
         if FileID.split('_')[-1] == 'noised':
-            FileID = FileID[:-7]
+            continue
         data.append([FileID, label])
 
     df = pd.DataFrame(data, columns=['FileID', 'Label'])
