@@ -36,7 +36,7 @@ import matplotlib.pyplot as plt
 import json
 import shutil
 
-process_start_time = datetime.now(pytz.timezone("Asia/Seoul"))
+process_start_time = datetime.now(pytz.timezone("Asia/Shanghai"))
 
 print(process_start_time)
 
