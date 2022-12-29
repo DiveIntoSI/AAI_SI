@@ -1,4 +1,3 @@
-
 """
 The MIT License
 
@@ -73,7 +72,7 @@ def create_logger(log_file=None):
     if not os.path.exists(log_file['filepath']):
         os.makedirs(log_file['filepath'])
 
-    file_mode = 'a' if os.path.isfile(filename)  else 'w'
+    file_mode = 'a' if os.path.isfile(filename) else 'w'
 
     root_logger = logging.getLogger()
     root_logger.setLevel(level=logging.INFO)
@@ -205,12 +204,12 @@ class TimeEstimator:
 
     def reset(self, count=1):
         self.start_time = time.time()
-        self.count_zero = count-1
+        self.count_zero = count - 1
 
     def get_est(self, count, total):
         curr_time = time.time()
         elapsed_time = curr_time - self.start_time
-        remain = total-count
+        remain = total - count
         remain_time = elapsed_time * remain / (count - self.count_zero)
 
         elapsed_time /= 3600.0
@@ -221,8 +220,8 @@ class TimeEstimator:
     def get_est_string(self, count, total):
         elapsed_time, remain_time = self.get_est(count, total)
 
-        elapsed_time_str = "{:.2f}h".format(elapsed_time) if elapsed_time > 1.0 else "{:.2f}m".format(elapsed_time*60)
-        remain_time_str = "{:.2f}h".format(remain_time) if remain_time > 1.0 else "{:.2f}m".format(remain_time*60)
+        elapsed_time_str = "{:.2f}h".format(elapsed_time) if elapsed_time > 1.0 else "{:.2f}m".format(elapsed_time * 60)
+        remain_time_str = "{:.2f}h".format(remain_time) if remain_time > 1.0 else "{:.2f}m".format(remain_time * 60)
 
         return elapsed_time_str, remain_time_str
 
@@ -237,7 +236,7 @@ def util_print_log_array(logger, result_log: LogData):
     assert type(result_log) == LogData, 'use LogData Class for result_log.'
 
     for key in result_log.get_keys():
-        logger.info('{} = {}'.format(key+'_list', result_log.get(key)))
+        logger.info('{} = {}'.format(key + '_list', result_log.get(key)))
 
 
 def util_save_log_image_with_label(result_file_prefix,
@@ -308,13 +307,7 @@ def copy_all_src(dst_root):
         execution_path = os.path.dirname(sys.argv[0])
 
     # home dir setting
-    tmp_dir1 = os.path.abspath(os.path.join(execution_path, sys.path[0]))
-    tmp_dir2 = os.path.abspath(os.path.join(execution_path, sys.path[1]))
-
-    if len(tmp_dir1) > len(tmp_dir2) and os.path.exists(tmp_dir2):
-        home_dir = tmp_dir2
-    else:
-        home_dir = tmp_dir1
+    home_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     # make target directory
     dst_path = os.path.join(dst_root, 'src')
@@ -343,4 +336,3 @@ def copy_all_src(dst_root):
                     dst_filepath = filepath.format(post_index)
 
                 shutil.copy(src_abspath, dst_filepath)
-

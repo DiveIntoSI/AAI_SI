@@ -28,9 +28,10 @@ def save_train_val_txt(dataset_params):
         # 不存在则执行分割
         os.makedirs(save_dir)
     data = []
-    for speaker in os.listdir(data_folder):
-        label = int(speaker[3:6])
-        FileID = speaker.split('.')[0]
+    sample_files = os.listdir(data_folder)
+    for each_file in sample_files:
+        label = int(each_file[3:6])
+        FileID = each_file.split('.')[0]
         if FileID.split('_')[-1] == 'noised':
             continue
         data.append([FileID, label])
@@ -46,7 +47,7 @@ def save_train_val_txt(dataset_params):
 
 
 class MyDataSet(Dataset):
-    def __init__(self, info_txt: str, add_noise: bool, data_folder: str, feature_name:str):
+    def __init__(self, info_txt: str, add_noise: bool, data_folder: str, feature_name: str):
         self.info_txt = info_txt
         self.data_info = pd.read_csv(info_txt)
 
@@ -69,5 +70,4 @@ class MyDataSet(Dataset):
             load_dict = pickle.load(f)
             data = load_dict[self.feature_name]
         data = data.astype(np.float32)
-        return data, self.data_info.loc[index]['Label']-1
-
+        return data, self.data_info.loc[index]['Label'] - 1

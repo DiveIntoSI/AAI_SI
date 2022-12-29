@@ -98,7 +98,7 @@ class Preprocess():
         self.silence_clip_ratio = list()
         self.audio_duration = list()
         self.NoiseAug = NoisePerturbAugmentor()
-        cp_path = 'Model/wav2vec_small.pt'
+        cp_path = 'ckpt/wav2vec_small.pt'
         self.wav2vec_device = 'cuda'
         self.wav2vec_model, _cfg, _task = fairseq.checkpoint_utils.load_model_ensemble_and_task([cp_path])
         self.wav2vec_model = self.wav2vec_model[0].to(self.wav2vec_device)

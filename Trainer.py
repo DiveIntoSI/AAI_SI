@@ -1,4 +1,3 @@
-
 import torch
 from logging import getLogger
 from tqdm import tqdm
@@ -11,8 +10,9 @@ from utils.utils import *
 from MyDataSet import MyDataSet
 from torch.utils.data import DataLoader
 
+
 class Trainer:
-    def __init__(self,model_params,optimizer_params,trainer_params, dataset_params):
+    def __init__(self, model_params, optimizer_params, trainer_params, dataset_params):
 
         # save arguments
         self.model_params = model_params
@@ -113,7 +113,7 @@ class Trainer:
 
     def _run_i_spilt(self, i_spilt, val_score_MX, val_score_MX_spilt_epoch):
         self.time_estimator.reset(self.start_epoch)
-        for epoch in tqdm(range(self.start_epoch, self.trainer_params['epochs']+1)):
+        for epoch in tqdm(range(self.start_epoch, self.trainer_params['epochs'] + 1)):
             self.logger.info('=================================================================')
 
             # Train
@@ -159,14 +159,14 @@ class Trainer:
                 self.logger.info("Saving log_image")
                 image_prefix = '{}/latest'.format(self.result_folder)
                 util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_1'],
-                                    self.result_log, labels=['train_score'])
+                                               self.result_log, labels=['train_score'])
                 util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_2'],
-                                    self.result_log, labels=['train_loss'])
+                                               self.result_log, labels=['train_loss'])
 
                 util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_1'],
-                                    self.result_log, labels=['val_score'])
+                                               self.result_log, labels=['val_score'])
                 util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_2'],
-                                    self.result_log, labels=['val_loss'])
+                                               self.result_log, labels=['val_loss'])
 
             if epoch % model_save_interval == 0:
                 self.logger.info("Saving trained_model")
@@ -182,13 +182,13 @@ class Trainer:
             if epoch % img_save_interval == 0:
                 image_prefix = '{}/img/checkpoint-{}'.format(self.result_folder, epoch)
                 util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_1'],
-                                    self.result_log, labels=['train_score'])
+                                               self.result_log, labels=['train_score'])
                 util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_2'],
-                                    self.result_log, labels=['train_loss'])
+                                               self.result_log, labels=['train_loss'])
                 util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_1'],
-                                    self.result_log, labels=['val_score'])
+                                               self.result_log, labels=['val_score'])
                 util_save_log_image_with_label(image_prefix, self.trainer_params['logging']['log_image_params_2'],
-                                    self.result_log, labels=['val_loss'])
+                                               self.result_log, labels=['val_loss'])
 
             if all_done:
                 self.logger.info(" *** Training Done *** ")
@@ -227,7 +227,6 @@ class Trainer:
                          .format(epoch, score_AM.avg, loss_AM.avg))
 
         return score_AM.avg, loss_AM.avg
-
 
     def _val_one_epoch(self, epoch):
         # train
