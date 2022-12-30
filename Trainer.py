@@ -127,8 +127,9 @@ class Trainer:
             # 测验证集val
             val_score, val_loss = self._val_one_epoch(epoch)
             # save model
+
             if val_score > val_score_MX:
-                self.logger.info(f"Best Val Scroe at Spilt {i_spilt} Epoch {epoch} Val Scroe{val_score}")
+                self.logger.info(f"Best Val Scroe at Spilt {i_spilt} Epoch {epoch} Val Score: {val_score:.4f}")
                 val_score_MX = val_score
                 val_score_MX_spilt_epoch = [i_spilt, epoch]
                 checkpoint_dict = {
@@ -248,7 +249,7 @@ class Trainer:
             loss_AM.update(loss.item(), datas.shape[0])
 
         # Log Once, for each epoch
-        self.logger.info('Val Epoch {:3d}: Val,  Score: {:.4f},  Loss: {:.4f}'
+        self.logger.info('Epoch {:3d}:   Val,  Score: {:.4f},  Loss: {:.4f}'
                          .format(epoch, score_AM.avg, loss_AM.avg))
 
         return score_AM.avg, loss_AM.avg
