@@ -1,14 +1,15 @@
-import torch
 from logging import getLogger
-from tqdm import tqdm
+
+import numpy as np
+import torch
 from torch import nn
 from torch.optim import Adam as Optimizer
 from torch.optim.lr_scheduler import MultiStepLR as Scheduler
-
-from utils.utils import *
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 from MyDataSet import MyDataSet
-from torch.utils.data import DataLoader
+from utils.utils import *
 
 
 class Trainer:
@@ -60,7 +61,7 @@ class Trainer:
             # self.start_epoch = 1 + model_load['epoch']
             self.result_log.set_raw_data(checkpoint['result_log'])
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            self.scheduler.last_epoch = model_load['epoch']-1
+            self.scheduler.last_epoch = model_load['epoch'] - 1
             self.logger.info('Saved Model Loaded !!')
 
         # utility
@@ -76,6 +77,7 @@ class Trainer:
 
         val_score_MX = 0.0
         val_score_MX_spilt_epoch = []
+        val_score_MXs = []
 
         for i_spilt in range(n_spilt):
             self.logger.info('=================================================================')
@@ -92,27 +94,29 @@ class Trainer:
             self.train_dataloader = DataLoader(train_dataset,
                                                batch_size=train_batch_size,
                                                shuffle=True,
-                                               generator = torch.Generator(device='cuda')
+                                               generator=torch.Generator(device='cuda')
                                                )
             self.val_dataloader = DataLoader(val_dataset,
                                              batch_size=train_batch_size,
                                              shuffle=True,
                                              generator=torch.Generator(device='cuda'))
-            # 模型初始化 代写
+            # 模型初始化
             model_ = self.model_params["model"]
             self.model = model_(**self.model_params[self.model_params["model_name"] + "_params"])
             self.optimizer = Optimizer(self.model.parameters(), **self.optimizer_params['optimizer'])
             self.scheduler = Scheduler(self.optimizer, **self.optimizer_params['scheduler'])
-            val_score_MX, val_score_MX_spilt_epoch = self._run_i_spilt(i_spilt,
-                                                                       val_score_MX,
-                                                                       val_score_MX_spilt_epoch)
-
+            val_score_MX, val_score_MX_spilt_epoch, val_score_MX_spilt = self._run_i_spilt(i_spilt,
+                                                                                           val_score_MX,
+                                                                                           val_score_MX_spilt_epoch)
+            val_score_MXs.append(val_score_MX_spilt)
+        self.logger.info(f"Ave Best Val Score at all Spilt Val Score: {np.mean(val_score_MXs):.4f}")
         self.logger.info("Now, printing log array...")
         util_print_log_array(self.logger, self.result_log)
-        # 加载模型并获得测试的结果，代写
+        # 加载模型并获得测试的结果，还没写
 
     def _run_i_spilt(self, i_spilt, val_score_MX, val_score_MX_spilt_epoch):
         self.time_estimator.reset(self.start_epoch)
+        val_score_MX_spilt = 0.0
         for epoch in tqdm(range(self.start_epoch, self.trainer_params['epochs'] + 1)):
             self.logger.info('=================================================================')
 
@@ -126,10 +130,14 @@ class Trainer:
 
             # 测验证集val
             val_score, val_loss = self._val_one_epoch(epoch)
-            # save model
 
+            # 保存每一折中的最大值
+            if val_score > val_score_MX_spilt:
+                val_score_MX_spilt = val_score
+
+            # save model
             if val_score > val_score_MX:
-                self.logger.info(f"Best Val Scroe at Spilt {i_spilt} Epoch {epoch} Val Score: {val_score:.4f}")
+                self.logger.info(f"Best Val Score at Spilt {i_spilt} Epoch {epoch} Val Score: {val_score:.4f}")
                 val_score_MX = val_score
                 val_score_MX_spilt_epoch = [i_spilt, epoch]
                 checkpoint_dict = {
@@ -193,7 +201,7 @@ class Trainer:
 
             if all_done:
                 self.logger.info(" *** Training Done *** ")
-        return val_score_MX, val_score_MX_spilt_epoch
+        return val_score_MX, val_score_MX_spilt_epoch, val_score_MX_spilt
 
     def _train_one_epoch(self, epoch):
         # train
