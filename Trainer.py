@@ -1,6 +1,5 @@
 from logging import getLogger
 
-import numpy as np
 import torch
 from torch import nn
 from torch.optim import Adam as Optimizer
@@ -115,9 +114,6 @@ class Trainer:
         self.logger.info(f"Best Val Score at Spilt {i_spilt} Epoch {epoch} Val Score: {val_score:.4f}")
         self.logger.info("Now, printing log array...")
         util_print_log_array(self.logger, self.result_log)
-        # 加载模型并获得测试的结果
-        self.logger.info("Now, Begin Test...")
-        self._test(i_spilt, epoch)
 
     def _run_i_spilt(self, i_spilt, val_score_MX, val_score_MX_spilt_epoch):
         self.time_estimator.reset(self.start_epoch)
@@ -266,16 +262,3 @@ class Trainer:
                          .format(epoch, score_AM.avg, loss_AM.avg))
 
         return score_AM.avg, loss_AM.avg
-
-    def _test(self, i_spilt, epoch):
-        USE_CUDA = self.trainer_params['use_cuda']
-        if USE_CUDA:
-            cuda_device_num = self.trainer_params['cuda_device_num']
-            device = torch.device('cuda', cuda_device_num)
-        else:
-            device = torch.device('cpu')
-
-        checkpoint_fullname = f'{self.result_folder}/checkpoint-BS-{i_spilt}_{epoch}.pt'
-        checkpoint = torch.load(checkpoint_fullname, map_location=device)
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        # ing...
