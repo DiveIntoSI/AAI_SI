@@ -132,7 +132,7 @@ class Trainer:
             val_score, val_loss = self._val_one_epoch(epoch)
 
             # LR Decay
-            self.scheduler.step(val_loss)
+            # self.scheduler.step(val_loss)
 
             # 保存每一折中的最大值
             if val_score > val_score_MX_spilt:
