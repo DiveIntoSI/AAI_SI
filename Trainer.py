@@ -1,9 +1,10 @@
 from logging import getLogger
 
+import numpy as np
 import torch
 from torch import nn
 from torch.optim import Adam as Optimizer
-from torch.optim.lr_scheduler import MultiStepLR as Scheduler
+from torch.optim.lr_scheduler import ReduceLROnPlateau as Scheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -61,6 +62,7 @@ class Trainer:
             self.result_log.set_raw_data(checkpoint['result_log'])
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             self.scheduler.last_epoch = model_load['epoch'] - 1
+            # 恢复scheduler的进度 代写
             self.logger.info('Saved Model Loaded !!')
 
         # utility
@@ -126,11 +128,11 @@ class Trainer:
             self.result_log.append('train_score', epoch, train_score)
             self.result_log.append('train_loss', epoch, train_loss)
 
-            # LR Decay
-            self.scheduler.step()
-
             # 测验证集val
             val_score, val_loss = self._val_one_epoch(epoch)
+
+            # LR Decay
+            self.scheduler.step(val_loss)
 
             # 保存每一折中的最大值
             if val_score > val_score_MX_spilt:

@@ -61,7 +61,7 @@ class MyDataSet(Dataset):
 
     def __getitem__(self, index):
         file_id = self.data_info.loc[index]['FileID']
-        if self.add_noise and random.random() < 0.5:
+        if self.add_noise:#  and random.random() < 0.5:
             # 50的概率加噪声
             file_id += '_noised'
         item = os.path.join(self.data_folder, file_id + '.pickle')
