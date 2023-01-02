@@ -6,18 +6,19 @@ from Model.MLPModel import MLPModel
 from Model.SAEPModel import SAEPModel
 
 model_params = {
-    'model': SAEPModel,
+    'model': SAEPModel,  # SAEPModel MLPModel
     'model_name': "SAEPModel",
     'MLPModel_params': {
-        'input_dim': 300*40,
-        'ff_hidden_dim': 256,
+        'input_dim': 150 * 512,
+        'hidden1_dim': 2560,
+        'hidden2_dim': 2560,
         'output_dim': 250
     },
     'SAEPModel_params': {
-        'seq_len': 300,
-        'input_dim': 40,
+        'seq_len': 150,
+        'input_dim': 512,
         'hidden_dim': 512,
-        'dense_dim': (128,250,250)
+        'dense_dim': (128, 250, 250)
     },
 }
 
@@ -28,16 +29,18 @@ optimizer_params = {
         'weight_decay': 1e-6
     },
     'scheduler': {
-        'milestones': [90, ],
-        'gamma': 0.1
+        'mode': 'min',
+        'factor': 0.1,
+        'patience': 5,
+        'verbose': True,
     }
 }
 
 trainer_params = {
     'use_cuda': True,
-    'cuda_device_num': 0,
-    'epochs': 100,
-    'train_batch_size': 128,
+    'cuda_device_num': 3,
+    'epochs': 200,
+    'train_batch_size': 32,
     "model_load": {
         "enable": False,
         "path": str,
@@ -69,7 +72,7 @@ dataset_params = {
     'split_info_folder': 'data_spilt',
     'n_spilt': 3,
     'add_noise': True,
-    'feature_name': 'LogMel_Features'
+    'feature_name': 'Wav2vec_Features'  # LogMel_Features Wav2vec_Features
 }
 ##########################################################################################
 # main
@@ -78,6 +81,7 @@ from utils.utils import create_logger, copy_all_src
 #
 from Trainer import Trainer
 from MyDataSet import save_train_val_txt
+
 
 def main():
     create_logger(**logger_params)
@@ -89,7 +93,6 @@ def main():
                       dataset_params=dataset_params)
     # copy_all_src(trainer.result_folder)
     trainer.run()
-
 
 
 def _print_config():
